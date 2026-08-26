@@ -1,0 +1,7 @@
+{
+  "name": "JARVIS",
+  "description": "Asistente personal de inteligencia artificial avanzado para Android inspirado en JARVIS, con control por voz, cerebro IA multimodelo, memoria a largo plazo, automatizaciones, habilidades y modo agente.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
