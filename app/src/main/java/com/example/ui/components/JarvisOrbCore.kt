@@ -19,9 +19,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.device.VoiceState
@@ -47,9 +47,9 @@ fun JarvisOrbCore(
             label = "jarvis_orb"
         )
 
-    // =========================================================
+    // ---------------------------------------------------------
     // ROTACIÓN EXTERIOR
-    // =========================================================
+    // ---------------------------------------------------------
 
     val rotationAngle by
         infiniteTransition.animateFloat(
@@ -72,9 +72,9 @@ fun JarvisOrbCore(
             label = "rotation"
         )
 
-    // =========================================================
+    // ---------------------------------------------------------
     // ROTACIÓN INTERIOR
-    // =========================================================
+    // ---------------------------------------------------------
 
     val reverseRotationAngle by
         infiniteTransition.animateFloat(
@@ -90,9 +90,9 @@ fun JarvisOrbCore(
             label = "reverse_rotation"
         )
 
-    // =========================================================
-    // PULSO DEL NÚCLEO
-    // =========================================================
+    // ---------------------------------------------------------
+    // PULSO
+    // ---------------------------------------------------------
 
     val pulseScale by
         infiniteTransition.animateFloat(
@@ -123,15 +123,11 @@ fun JarvisOrbCore(
             label = "pulse"
         )
 
-    // =========================================================
+    // ---------------------------------------------------------
     // COLORES SEGÚN ESTADO
-    // =========================================================
+    // ---------------------------------------------------------
 
-    val (
-        primaryGlow,
-        secondaryGlow,
-        coreColor
-    ) =
+    val colors =
         when (voiceState) {
 
             VoiceState.IDLE ->
@@ -170,9 +166,13 @@ fun JarvisOrbCore(
                 )
         }
 
-    // =========================================================
-    // ORBE INTERACTIVO
-    // =========================================================
+    val primaryGlow = colors.first
+    val secondaryGlow = colors.second
+    val coreColor = colors.third
+
+    // ---------------------------------------------------------
+    // ORBE
+    // ---------------------------------------------------------
 
     Box(
         modifier =
@@ -184,20 +184,15 @@ fun JarvisOrbCore(
                             MutableInteractionSource()
                         },
                     indication = null,
-                    enabled = true,
                     onClick = {
-                        // Un toque completo activa
-                        // la acción del controlador.
                         onClick()
                     }
                 ),
-        contentAlignment =
-            Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
 
         Canvas(
-            modifier =
-                Modifier.size(sizeDp)
+            modifier = Modifier.size(sizeDp)
         ) {
 
             val center =
@@ -209,9 +204,9 @@ fun JarvisOrbCore(
             val radius =
                 size.minDimension / 2f
 
-            // =================================================
-            // 1. BRILLO AMBIENTAL
-            // =================================================
+            // -------------------------------------------------
+            // BRILLO AMBIENTAL
+            // -------------------------------------------------
 
             drawCircle(
                 brush =
@@ -239,12 +234,12 @@ fun JarvisOrbCore(
                 center = center
             )
 
-            // =================================================
-            // 2. ANILLO EXTERIOR
-            // =================================================
+            // -------------------------------------------------
+            // ANILLO EXTERIOR
+            // -------------------------------------------------
 
             rotate(
-                rotationAngle,
+                degrees = rotationAngle,
                 pivot = center
             ) {
 
@@ -258,15 +253,150 @@ fun JarvisOrbCore(
                     center = center,
                     style =
                         Stroke(
-                            width =
-                                2.dp.toPx(),
+                            width = 2.dp.toPx(),
                             pathEffect =
-                                PathEffect
-                                    .dashPathEffect(
-                                        floatArrayOf(
-                                            30f,
-                                            15f,
-                                            10f,
-                                            15f
-                                        ),
-                                       
+                                PathEffect.dashPathEffect(
+                                    floatArrayOf(
+                                        30f,
+                                        15f,
+                                        10f,
+                                        15f
+                                    ),
+                                    0f
+                                )
+                        )
+                )
+
+                // Nodos tecnológicos
+                for (i in 0 until 6) {
+
+                    val angle =
+                        (i * 60f) *
+                            (Math.PI / 180f)
+                                .toFloat()
+
+                    val nodePosition =
+                        Offset(
+                            x =
+                                center.x +
+                                    (radius * 0.88f) *
+                                    cos(angle),
+                            y =
+                                center.y +
+                                    (radius * 0.88f) *
+                                    sin(angle)
+                        )
+
+                    drawCircle(
+                        color = primaryGlow,
+                        radius = 3.dp.toPx(),
+                        center = nodePosition
+                    )
+                }
+            }
+
+            // -------------------------------------------------
+            // ANILLO INTERIOR
+            // -------------------------------------------------
+
+            rotate(
+                degrees = reverseRotationAngle,
+                pivot = center
+            ) {
+
+                drawCircle(
+                    color =
+                        secondaryGlow.copy(
+                            alpha = 0.65f
+                        ),
+                    radius =
+                        radius * 0.72f,
+                    center = center,
+                    style =
+                        Stroke(
+                            width = 3.dp.toPx(),
+                            pathEffect =
+                                PathEffect.dashPathEffect(
+                                    floatArrayOf(
+                                        60f,
+                                        40f
+                                    ),
+                                    0f
+                                ),
+                            cap = StrokeCap.Round
+                        )
+                )
+            }
+
+            // -------------------------------------------------
+            // ANILLO DE POTENCIA
+            // -------------------------------------------------
+
+            rotate(
+                degrees = rotationAngle * 1.5f,
+                pivot = center
+            ) {
+
+                drawCircle(
+                    color =
+                        primaryGlow.copy(
+                            alpha = 0.85f
+                        ),
+                    radius =
+                        radius * 0.52f,
+                    center = center,
+                    style =
+                        Stroke(
+                            width = 1.5.dp.toPx(),
+                            pathEffect =
+                                PathEffect.dashPathEffect(
+                                    floatArrayOf(
+                                        15f,
+                                        15f
+                                    ),
+                                    0f
+                                )
+                        )
+                )
+            }
+
+            // -------------------------------------------------
+            // NÚCLEO CENTRAL
+            // -------------------------------------------------
+
+            val coreRadius =
+                radius *
+                    0.36f *
+                    pulseScale
+
+            drawCircle(
+                brush =
+                    Brush.radialGradient(
+                        colors =
+                            listOf(
+                                Color.White,
+                                coreColor,
+                                primaryGlow.copy(
+                                    alpha = 0.85f
+                                ),
+                                Color.Transparent
+                            ),
+                        center = center,
+                        radius = coreRadius
+                    ),
+                radius = coreRadius,
+                center = center
+            )
+
+            // -------------------------------------------------
+            // PUNTO CENTRAL
+            // -------------------------------------------------
+
+            drawCircle(
+                color = Color.White,
+                radius = 4.dp.toPx(),
+                center = center
+            )
+        }
+    }
+}
