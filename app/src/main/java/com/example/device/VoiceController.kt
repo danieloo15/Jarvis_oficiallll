@@ -273,4 +273,383 @@ class VoiceController(
                             VoiceState.LISTENING
                     }
 
-                    override fun onBeginningOfSpeech
+                    override fun onBeginningOfSpeech() {
+
+                        if (destroyed ||
+                            manuallyStopped
+                        ) return
+
+                        listening = true
+
+                        _voiceState.value =
+                            VoiceState.LISTENING
+                    }
+
+                    override fun onRmsChanged(
+                        rmsdB: Float
+                    ) {
+                    }
+
+                    override fun onBufferReceived(
+                        buffer: ByteArray?
+                    ) {
+                    }
+
+                    override fun onEndOfSpeech() {
+
+                        if (
+                            destroyed ||
+                            manuallyStopped
+                        ) return
+
+                        listening = false
+
+                        _voiceState.value =
+                            VoiceState.THINKING
+                    }
+
+                    override fun onError(
+                        error: Int
+                    ) {
+
+                        listening = false
+
+                        if (
+                            destroyed ||
+                            manuallyStopped
+                        ) return
+
+                        if (
+                            _voiceMode.value ==
+                            VoiceMode.CONTINUOUS_CONVERSATION
+                        ) {
+
+                            scheduleListening()
+
+                        } else {
+
+                            _voiceState.value =
+                                VoiceState.IDLE
+                        }
+                    }
+
+                    override fun onResults(
+                        results: Bundle?
+                    ) {
+
+                        listening = false
+
+                        if (
+                            destroyed ||
+                            manuallyStopped
+                        ) return
+
+                        val matches =
+                            results?.getStringArrayList(
+                                SpeechRecognizer
+                                    .RESULTS_RECOGNITION
+                            )
+
+                        val text =
+                            matches
+                                ?.firstOrNull()
+                                ?.trim()
+                                ?: ""
+
+                        if (text.isNotBlank()) {
+
+                            _voiceState.value =
+                                VoiceState.THINKING
+
+                            onSpeechRecognized(text)
+
+                        } else {
+
+                            if (
+                                _voiceMode.value ==
+                                VoiceMode.CONTINUOUS_CONVERSATION
+                            ) {
+
+                                scheduleListening()
+
+                            } else {
+
+                                _voiceState.value =
+                                    VoiceState.IDLE
+                            }
+                        }
+                    }
+
+                    override fun onPartialResults(
+                        partialResults: Bundle?
+                    ) {
+                    }
+
+                    override fun onEvent(
+                        eventType: Int,
+                        params: Bundle?
+                    ) {
+                    }
+                }
+            )
+
+            val intent =
+                Intent(
+                    RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+                ).apply {
+
+                    putExtra(
+                        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                    )
+
+                    putExtra(
+                        RecognizerIntent.EXTRA_LANGUAGE,
+                        "es-ES"
+                    )
+
+                    putExtra(
+                        RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,
+                        "es-ES"
+                    )
+
+                    putExtra(
+                        RecognizerIntent.EXTRA_MAX_RESULTS,
+                        1
+                    )
+
+                    putExtra(
+                        RecognizerIntent.EXTRA_PARTIAL_RESULTS,
+                        true
+                    )
+                }
+
+            speechRecognizer?.startListening(
+                intent
+            )
+
+            // IMPORTANTE:
+            // NO ponemos LISTENING aquí.
+            // Esperamos a onReadyForSpeech().
+            _voiceState.value =
+                VoiceState.IDLE
+
+        } catch (_: Exception) {
+
+            listening = false
+
+            _voiceState.value =
+                VoiceState.ERROR
+        }
+    }
+
+    // =========================================================
+    // CONTINUOUS LISTENING
+    // =========================================================
+
+    private fun scheduleListening() {
+
+        if (destroyed) return
+
+        if (manuallyStopped) return
+
+        if (
+            _voiceMode.value !=
+            VoiceMode.CONTINUOUS_CONVERSATION
+        ) return
+
+        mainHandler.removeCallbacksAndMessages(
+            null
+        )
+
+        mainHandler.postDelayed({
+
+            if (
+                !destroyed &&
+                !manuallyStopped &&
+                _voiceMode.value ==
+                VoiceMode.CONTINUOUS_CONVERSATION
+            ) {
+
+                startListening()
+            }
+
+        }, 700)
+    }
+
+    // =========================================================
+    // STOP
+    // =========================================================
+
+    fun stopListening() {
+
+        manuallyStopped = true
+        listening = false
+
+        mainHandler.removeCallbacksAndMessages(
+            null
+        )
+
+        try {
+            speechRecognizer?.cancel()
+        } catch (_: Exception) {
+        }
+
+        _voiceState.value =
+            VoiceState.IDLE
+    }
+
+    fun stopSpeaking() {
+
+        manuallyStopped = true
+
+        mainHandler.removeCallbacksAndMessages(
+            null
+        )
+
+        try {
+            textToSpeech?.stop()
+        } catch (_: Exception) {
+        }
+
+        _voiceState.value =
+            VoiceState.IDLE
+    }
+
+    fun emergencyStopAll() {
+
+        manuallyStopped = true
+        listening = false
+
+        mainHandler.removeCallbacksAndMessages(
+            null
+        )
+
+        try {
+            speechRecognizer?.cancel()
+        } catch (_: Exception) {
+        }
+
+        try {
+            textToSpeech?.stop()
+        } catch (_: Exception) {
+        }
+
+        _voiceState.value =
+            VoiceState.IDLE
+    }
+
+    // =========================================================
+    // SETTINGS
+    // =========================================================
+
+    fun setVoiceState(
+        state: VoiceState
+    ) {
+
+        _voiceState.value =
+            state
+    }
+
+    fun toggleVoiceMode() {
+
+        val newMode =
+            if (
+                _voiceMode.value ==
+                VoiceMode.INDIVIDUAL_COMMAND
+            ) {
+
+                VoiceMode.CONTINUOUS_CONVERSATION
+
+            } else {
+
+                VoiceMode.INDIVIDUAL_COMMAND
+            }
+
+        setVoiceMode(newMode)
+    }
+
+    fun setVoiceMode(
+        mode: VoiceMode
+    ) {
+
+        _voiceMode.value =
+            mode
+
+        if (
+            mode ==
+            VoiceMode.INDIVIDUAL_COMMAND
+        ) {
+
+            stopListening()
+
+        } else {
+
+            // Al activar conversación continua
+            // dejamos el sistema preparado.
+            manuallyStopped = false
+        }
+    }
+
+    fun toggleHotword() {
+
+        _isHotwordEnabled.value =
+            !_isHotwordEnabled.value
+    }
+
+    fun setPitch(
+        pitch: Float
+    ) {
+
+        _voicePitch.value =
+            pitch
+
+        textToSpeech?.setPitch(
+            pitch
+        )
+    }
+
+    fun setVolume(
+        volume: Float
+    ) {
+
+        _voiceVolume.value =
+            volume.coerceIn(
+                0.0f,
+                1.0f
+            )
+    }
+
+    // =========================================================
+    // DESTROY
+    // =========================================================
+
+    fun destroy() {
+
+        destroyed = true
+        manuallyStopped = true
+        listening = false
+
+        mainHandler.removeCallbacksAndMessages(
+            null
+        )
+
+        try {
+            speechRecognizer?.cancel()
+            speechRecognizer?.destroy()
+        } catch (_: Exception) {
+        }
+
+        try {
+            textToSpeech?.stop()
+            textToSpeech?.shutdown()
+        } catch (_: Exception) {
+        }
+
+        speechRecognizer = null
+        textToSpeech = null
+
+        _voiceState.value =
+            VoiceState.IDLE
+    }
+}
