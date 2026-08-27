@@ -223,7 +223,28 @@ fun MainScreen(viewModel: JarvisViewModel) {
                     voiceState = voiceState,
                     voiceMode = voiceMode,
                     onSendMessage = { viewModel.processUserInput(it) },
-                    onStartVoice = { viewModel.voiceController.startListening() },
+                    onStartVoice = {
+    val currentState = viewModel.voiceController.voiceState.value
+
+    when (currentState) {
+        VoiceState.IDLE,
+        VoiceState.ERROR -> {
+            viewModel.voiceController.startListening()
+        }
+
+        VoiceState.LISTENING -> {
+            viewModel.voiceController.stopListening()
+        }
+
+        VoiceState.THINKING -> {
+            viewModel.voiceController.stopListening()
+        }
+
+        VoiceState.SPEAKING -> {
+            viewModel.voiceController.stopSpeaking()
+        }
+    }
+},
                     onStopVoice = { viewModel.voiceController.stopListening() },
                     onToggleVoiceMode = { viewModel.voiceController.toggleVoiceMode() },
                     onSpeakText = { viewModel.voiceController.speak(it) },
