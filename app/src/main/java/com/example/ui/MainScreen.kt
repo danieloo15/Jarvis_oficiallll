@@ -389,393 +389,275 @@ fun MainScreen(viewModel: JarvisViewModel) {
                 }
 
                 JarvisNavTab.SKILLS -> SkillsScreen(
+    skills = skills,
 
-                    skills = skills,
-
-                    onToggleSkill = { skill ->
-
-                        coroutineScope.launch {
-
-                            viewModel.repository.updateSkill(
-                                skill.copy(
-                                    isEnabled =
-                                        !skill.isEnabled
-                                )
-                            )
-                        }
-                    },
-
-                    onCreateSkill = {
-                            name,
-                            category,
-                            trigger,
-                            actions ->
-
-                        coroutineScope.launch {
-
-                            val newAuto =
-                                SkillEntity(
-                                    id = "skill_${System.currentTimeMillis()}",
-                                    name = name,
-                                    category = category,
-                                    iconName = "bolt",
-                                    description =
-                                        "Disparador: $trigger. Acciones: $actions",
-                                    isEnabled = true,
-                                    availableActions = actions,
-                                    isCustom = true
-                                )
-
-                            viewModel.repository
-                                .saveSkill(newAuto)
-
-                            viewModel.logAction(
-                                "Nueva Habilidad Creada",
-                                name,
-                                "System",
-                                "COMPLETED"
-                            )
-                        }
-                    },
-
-                    onDeleteSkill = { skillId ->
-
-                        coroutineScope.launch {
-
-                            viewModel.repository
-                                .deleteSkill(skillId)
-                        }
-                    }
+    onToggleSkill = { skill ->
+        coroutineScope.launch {
+            viewModel.repository.updateSkill(
+                skill.copy(
+                    isEnabled = !skill.isEnabled
                 )
+            )
+        }
+    },
 
-                JarvisNavTab.AUTOMATIONS -> AutomationsScreen(
+    onCreateSkill = { name, category, trigger, actions ->
+        coroutineScope.launch {
 
-                    automations = automations,
+            val newSkill = SkillEntity(
+                id = "skill_${System.currentTimeMillis()}",
+                name = name,
+                category = category,
+                iconName = "bolt",
+                description = "Disparador: $trigger. Acciones: $actions",
+                isEnabled = true,
+                availableActions = actions,
+                isCustom = true
+            )
 
-                    onToggleAutomation = { auto ->
+            viewModel.repository.saveSkill(newSkill)
 
-                        coroutineScope.launch {
+            viewModel.logAction(
+                "Nueva Habilidad Creada",
+                name,
+                "System",
+                "COMPLETED"
+            )
+        }
+    },
 
-                            viewModel.repository
-                                .updateAutomation(
-                                    auto.copy(
-                                        isEnabled =
-                                            !auto.isEnabled
-                                    )
-                                )
-                        }
-                    },
+    onDeleteSkill = { skillId ->
+        coroutineScope.launch {
+            viewModel.repository.deleteSkill(skillId)
+        }
+    }
+)
 
-                    onCreateAutomation = {
-                            name,
-                            trigType,
-                            trigCond,
-                            secCond,
-                            acts ->
+JarvisNavTab.AUTOMATIONS -> AutomationsScreen(
+    automations = automations,
 
-                        coroutineScope.launch {
-
-                            val newAuto =
-                                AutomationEntity(
-                                    name = name,
-                                    triggerType = trigType,
-                                    triggerCondition = trigCond,
-                                    secondCondition = secCond,
-                                    actionsList = acts,
-                                    isEnabled = true
-                                )
-
-                            viewModel.repository
-                                .saveAutomation(newAuto)
-
-                            viewModel.logAction(
-                                "Automatización Creada",
-                                name,
-                                "Automation",
-                                "COMPLETED"
-                            )
-                        }
-                    },
-
-                    onExecuteAutomation = { auto ->
-                        viewModel.executeAutomation(auto)
-                    },
-
-                    onDeleteAutomation = { id ->
-
-                        coroutineScope.launch {
-
-                            viewModel.repository
-                                .deleteAutomation(id)
-                        }
-                    }
+    onToggleAutomation = { auto ->
+        coroutineScope.launch {
+            viewModel.repository.updateAutomation(
+                auto.copy(
+                    isEnabled = !auto.isEnabled
                 )
+            )
+        }
+    },
 
-                JarvisNavTab.MEMORY -> MemoryScreen(
+    onCreateAutomation = {
+        name,
+        trigType,
+        trigCond,
+        secCond,
+        acts ->
 
-                    memories = memories,
+        coroutineScope.launch {
 
-                    onSaveMemory = {
-                            title,
-                            content,
-                            cat,
-                            tags ->
+            val newAuto = AutomationEntity(
+                name = name,
+                triggerType = trigType,
+                triggerCondition = trigCond,
+                secondCondition = secCond,
+                actionsList = acts,
+                isEnabled = true
+            )
 
-                        coroutineScope.launch {
+            viewModel.repository.saveAutomation(newAuto)
 
-                            viewModel.repository.saveMemory(
-                                com.example.data.local.entity.MemoryEntity(
-                                    title = title,
-                                    content = content,
-                                    category = cat,
-                                    tags = tags
-                                )
-                            )
+            viewModel.logAction(
+                "Automatización Creada",
+                name,
+                "Automation",
+                "COMPLETED"
+            )
+        }
+    },
 
-                             viewModel.logAction(
-                                "Nueva Habilidad Creada",
-                                name,
-                                "System",
-                                "COMPLETED"
-                            )
-                        }
-                    },
+    onExecuteAutomation = { auto ->
+        viewModel.executeAutomation(auto)
+    },
 
-                    onDeleteSkill = { skillId ->
+    onDeleteAutomation = { id ->
+        coroutineScope.launch {
+            viewModel.repository.deleteAutomation(id)
+        }
+    }
+)
 
-                        coroutineScope.launch {
-                            viewModel.repository
-                                .deleteSkill(skillId)
-                        }
-                    }
+JarvisNavTab.MEMORY -> MemoryScreen(
+    memories = memories,
+
+    onSaveMemory = {
+        title,
+        content,
+        cat,
+        tags ->
+
+        coroutineScope.launch {
+
+            viewModel.repository.saveMemory(
+                com.example.data.local.entity.MemoryEntity(
+                    title = title,
+                    content = content,
+                    category = cat,
+                    tags = tags
                 )
+            )
 
-                JarvisNavTab.AUTOMATIONS -> AutomationsScreen(
-                    automations = automations,
+            viewModel.logAction(
+                "Recuerdo Almacenado",
+                title,
+                "Memory",
+                "COMPLETED"
+            )
+        }
+    },
 
-                    onToggleAutomation = { auto ->
-                        coroutineScope.launch {
-                            viewModel.repository.updateAutomation(
-                                auto.copy(
-                                    isEnabled = !auto.isEnabled
-                                )
-                            )
-                        }
-                    },
+    onDeleteMemory = { id ->
+        coroutineScope.launch {
+            viewModel.repository.deleteMemory(id)
+        }
+    },
 
-                    onCreateAutomation = {
-                            name,
-                            trigType,
-                            trigCond,
-                            secCond,
-                            acts ->
+    onClearAllMemories = {
+        coroutineScope.launch {
 
-                        coroutineScope.launch {
+            viewModel.repository.clearAllMemories()
 
-                            val newAuto = AutomationEntity(
-                                name = name,
-                                triggerType = trigType,
-                                triggerCondition = trigCond,
-                                secondCondition = secCond,
-                                actionsList = acts,
-                                isEnabled = true
-                            )
+            viewModel.logAction(
+                "Memoria Purgada",
+                "Todos los recuerdos eliminados",
+                "Memory",
+                "COMPLETED"
+            )
+        }
+    }
+)
 
-                            viewModel.repository.saveAutomation(newAuto)
+JarvisNavTab.CONNECTIONS -> ConnectionsScreen(
+    connections = connections,
 
-                            viewModel.logAction(
-                                "Automatización Creada",
-                                name,
-                                "Automation",
-                                "COMPLETED"
-                            )
-                        }
-                    },
-
-                    onExecuteAutomation = { auto ->
-                        viewModel.executeAutomation(auto)
-                    },
-
-                    onDeleteAutomation = { id ->
-                        coroutineScope.launch {
-                            viewModel.repository.deleteAutomation(id)
-                        }
-                    }
+    onToggleConnection = { conn ->
+        coroutineScope.launch {
+            viewModel.repository.updateConnection(
+                conn.copy(
+                    isConnected = !conn.isConnected
                 )
+            )
+        }
+    }
+)
 
-                JarvisNavTab.MEMORY -> MemoryScreen(
-                    memories = memories,
+JarvisNavTab.HISTORY -> HistoryScreen(
+    historyList = history,
 
-                    onSaveMemory = {
-                            title,
-                            content,
-                            cat,
-                            tags ->
+    onClearAllHistory = {
+        coroutineScope.launch {
+            viewModel.repository.clearAllHistory()
+        }
+    },
 
-                        coroutineScope.launch {
+    onUndoAction = { action ->
+        viewModel.logAction(
+            "Acción Deshecha",
+            action.title,
+            "System",
+            "COMPLETED"
+        )
+    }
+)
 
-                            viewModel.repository.saveMemory(
-                                com.example.data.local.entity.MemoryEntity(
-                                    title = title,
-                                    content = content,
-                                    category = cat,
-                                    tags = tags
-                                )
-                            )
+JarvisNavTab.SECURITY -> PermissionsScreen(
+    permissions =
+        viewModel.permissionManager
+            .getAllPermissions(),
 
-                            viewModel.logAction(
-                                "Recuerdo Almacenado",
-                                title,
-                                "Memory",
-                                "COMPLETED"
-                            )
-                        }
-                    },
+    onOpenSettings = {
+        viewModel.permissionManager
+            .openAppSettings()
+    },
 
-                    onDeleteMemory = { id ->
-                        coroutineScope.launch {
-                            viewModel.repository.deleteMemory(id)
-                        }
-                    },
+    onOpenAccessibilitySettings = {
+        viewModel.permissionManager
+            .openAccessibilitySettings()
+    }
+)
 
-                    onClearAllMemories = {
-                        coroutineScope.launch {
+JarvisNavTab.VISION -> VisionScreen(
+    isAnalyzing = isVisionAnalyzing,
+    analysisResult = visionResult,
 
-                            viewModel.repository.clearAllMemories()
+    onAnalyzeImage = {
+        bmp,
+        prompt ->
 
-                            viewModel.logAction(
-                                "Memoria Purgada",
-                                "Todos los recuerdos eliminados",
-                                "Memory",
-                                "COMPLETED"
-                            )
-                        }
-                    }
-                )
+        viewModel.analyzeImage(
+            bmp,
+            prompt
+        )
+    }
+)
 
-                JarvisNavTab.CONNECTIONS -> ConnectionsScreen(
-                    connections = connections,
+JarvisNavTab.SETTINGS -> SettingsScreen(
+    selectedModel = selectedModel,
 
-                    onToggleConnection = { conn ->
-                        coroutineScope.launch {
-                            viewModel.repository.updateConnection(
-                                conn.copy(
-                                    isConnected = !conn.isConnected
-                                )
-                            )
-                        }
-                    }
-                )
+    onSelectModel = {
+        viewModel.setSelectedModel(it)
+    },
 
-                JarvisNavTab.HISTORY -> HistoryScreen(
-                    historyList = history,
+    isAdminActive = isAdminActive,
+    adminTimeFormatted = adminTimeFormatted,
 
-                    onClearAllHistory = {
-                        coroutineScope.launch {
-                            viewModel.repository.clearAllHistory()
-                        }
-                    },
+    onEnableAdmin = { mins ->
+        viewModel.adminModeManager
+            .enableAdminMode(mins)
+    },
 
-                    onUndoAction = { action ->
-                        viewModel.logAction(
-                            "Acción Deshecha",
-                            action.title,
-                            "System",
-                            "COMPLETED"
-                        )
-                    }
-                )
+    onDisableAdmin = {
+        viewModel.adminModeManager
+            .disableAdminMode()
+    },
 
-                JarvisNavTab.SECURITY -> PermissionsScreen(
-                    permissions =
-                        viewModel.permissionManager
-                            .getAllPermissions(),
+    isHotwordEnabled = isHotwordEnabled,
 
-                    onOpenSettings = {
-                        viewModel.permissionManager
-                            .openAppSettings()
-                    },
+    onToggleHotword = {
+        viewModel.voiceController
+            .toggleHotword()
+    },
 
-                    onOpenAccessibilitySettings = {
-                        viewModel.permissionManager
-                            .openAccessibilitySettings()
-                    }
-                )
+    pitch = voicePitch,
 
-                JarvisNavTab.VISION -> VisionScreen(
-                    isAnalyzing = isVisionAnalyzing,
-                    analysisResult = visionResult,
+    onPitchChange = {
+        viewModel.voiceController
+            .setPitch(it)
+    },
 
-                    onAnalyzeImage = {
-                            bmp,
-                            prompt ->
+    volume = voiceVolume,
 
-                        viewModel.analyzeImage(
-                            bmp,
-                            prompt
-                        )
-                    }
-                )
+    onVolumeChange = {
+        viewModel.voiceController
+            .setVolume(it)
+    }
+)
+}
 
-                JarvisNavTab.SETTINGS -> SettingsScreen(
-                    selectedModel = selectedModel,
+pendingConfirmation?.let { pending ->
 
-                    onSelectModel = {
-                        viewModel.setSelectedModel(it)
-                    },
+    ActionConfirmationDialog(
+        title = pending.title,
+        details = pending.details,
 
-                    isAdminActive = isAdminActive,
-                    adminTimeFormatted = adminTimeFormatted,
+        onConfirm = {
+            viewModel.confirmPendingAction()
+        },
 
-                    onEnableAdmin = { mins ->
-                        viewModel.adminModeManager
-                            .enableAdminMode(mins)
-                    },
-
-                    onDisableAdmin = {
-                        viewModel.adminModeManager
-                            .disableAdminMode()
-                    },
-
-                    isHotwordEnabled = isHotwordEnabled,
-
-                    onToggleHotword = {
-                        viewModel.voiceController
-                            .toggleHotword()
-                    },
-
-                    pitch = voicePitch,
-
-                    onPitchChange = {
-                        viewModel.voiceController
-                            .setPitch(it)
-                    },
-
-                    volume = voiceVolume,
-
-                    onVolumeChange = {
-                        viewModel.voiceController
-                            .setVolume(it)
-                    }
-                )
-            }
-
-            pendingConfirmation?.let { pending ->
-
-                ActionConfirmationDialog(
-                    title = pending.title,
-                    details = pending.details,
-
-                    onConfirm = {
-                        viewModel.confirmPendingAction()
-                    },
-
-                    onDismiss = {
-                        viewModel.cancelPendingAction()
-                    }
-                )
-            }
+        onDismiss = {
+            viewModel.cancelPendingAction()
+        }
+    )
+}
         }
     }
 }
-     
