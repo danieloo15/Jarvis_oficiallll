@@ -21,8 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
@@ -32,6 +30,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -77,11 +76,11 @@ import com.example.ui.theme.JarvisGold
 import com.example.ui.theme.JarvisRed
 import com.example.ui.theme.JarvisSurface
 import com.example.ui.theme.JarvisSurfaceBorder
-import com.example.ui.theme.JarvisSurfaceElevated
 import com.example.ui.theme.JarvisTextMuted
 import com.example.ui.theme.JarvisTextPrimary
 import com.example.ui.theme.JarvisTextSecondary
 import com.example.viewmodel.JarvisViewModel
+import com.example.device.VoiceState
 import kotlinx.coroutines.launch
 
 enum class JarvisNavTab(val title: String, val icon: ImageVector) {
@@ -99,19 +98,25 @@ enum class JarvisNavTab(val title: String, val icon: ImageVector) {
 
 @Composable
 fun MainScreen(viewModel: JarvisViewModel) {
-    val coroutineScope = rememberCoroutineScope()
-    var currentTab by remember { mutableStateOf(JarvisNavTab.DASHBOARD) }
 
-    // State collections
+    val coroutineScope = rememberCoroutineScope()
+
+    var currentTab by remember {
+        mutableStateOf(JarvisNavTab.DASHBOARD)
+    }
+
     val telemetry by viewModel.telemetry.collectAsState()
     val isMinimalistMode by viewModel.isMinimalistMode.collectAsState()
+
     val voiceState by viewModel.voiceController.voiceState.collectAsState()
     val voiceMode by viewModel.voiceController.voiceMode.collectAsState()
     val isHotwordEnabled by viewModel.voiceController.isHotwordEnabled.collectAsState()
     val voicePitch by viewModel.voiceController.voicePitch.collectAsState()
     val voiceVolume by viewModel.voiceController.voiceVolume.collectAsState()
+
     val isAdminActive by viewModel.adminModeManager.isAdminActive.collectAsState()
-    val adminTimeFormatted = viewModel.adminModeManager.formatRemainingTime()
+    val adminTimeFormatted =
+        viewModel.adminModeManager.formatRemainingTime()
 
     val chatMessages by viewModel.chatMessages.collectAsState()
     val isThinking by viewModel.isThinking.collectAsState()
@@ -128,65 +133,151 @@ fun MainScreen(viewModel: JarvisViewModel) {
     val isVisionAnalyzing by viewModel.isVisionAnalyzing.collectAsState()
     val visionResult by viewModel.visionResult.collectAsState()
 
+    /*
+     * CONTROL CENTRAL DE VOZ
+     *
+     * IDLE / ERROR      -> empieza a escuchar
+     * LISTENING         -> detiene la escucha
+     * THINKING          -> detiene la escucha
+     * SPEAKING          -> detiene la respuesta hablada
+     */
+    val handleVoiceButton: () -> Unit = {
+
+        when (viewModel.voiceController.voiceState.value) {
+
+            VoiceState.IDLE,
+            VoiceState.ERROR -> {
+                viewModel.voiceController.startListening()
+            }
+
+            VoiceState.LISTENING -> {
+                viewModel.voiceController.stopListening()
+            }
+
+            VoiceState.THINKING -> {
+                viewModel.voiceController.stopListening()
+            }
+
+            VoiceState.SPEAKING -> {
+                viewModel.voiceController.stopSpeaking()
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .background(JarvisBackground),
+
         topBar = {
-            Column(modifier = Modifier.statusBarsPadding()) {
+
+            Column(
+                modifier = Modifier.statusBarsPadding()
+            ) {
+
                 TelemetryHeader(
                     telemetry = telemetry,
                     voiceState = voiceState,
                     voiceMode = voiceMode,
                     isAdminActive = isAdminActive,
                     adminTimeFormatted = adminTimeFormatted,
-                    onEmergencyStop = { viewModel.emergencyStop() }
+                    onEmergencyStop = {
+                        viewModel.emergencyStop()
+                    }
                 )
 
-                // High-Tech Horizontal Navigation Selector
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = JarvisSurface.copy(alpha = 0.98f),
-                    border = androidx.compose.foundation.BorderStroke(0.5.dp, JarvisSurfaceBorder)
+                    border = androidx.compose.foundation.BorderStroke(
+                        0.5.dp,
+                        JarvisSurfaceBorder
+                    )
                 ) {
+
                     LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(
+                                horizontal = 8.dp,
+                                vertical = 6.dp
+                            ),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(6.dp)
                     ) {
+
                         items(JarvisNavTab.values()) { tab ->
-                            val isSelected = currentTab == tab
+
+                            val isSelected =
+                                currentTab == tab
+
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) JarvisCyan.copy(alpha = 0.18f) else Color.Transparent)
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) JarvisCyan else Color.Transparent,
+                                    .clip(
                                         RoundedCornerShape(8.dp)
                                     )
-                                    .clickable { currentTab = tab }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    .testTag("nav_tab_${tab.name.lowercase()}"),
-                                contentAlignment = Alignment.Center
+                                    .background(
+                                        if (isSelected)
+                                            JarvisCyan.copy(alpha = 0.18f)
+                                        else
+                                            Color.Transparent
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (isSelected)
+                                            JarvisCyan
+                                        else
+                                            Color.Transparent,
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        currentTab = tab
+                                    }
+                                    .padding(
+                                        horizontal = 10.dp,
+                                        vertical = 6.dp
+                                    )
+                                    .testTag(
+                                        "nav_tab_${tab.name.lowercase()}"
+                                    ),
+                                contentAlignment =
+                                    Alignment.Center
                             ) {
+
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    verticalAlignment =
+                                        Alignment.CenterVertically,
+                                    horizontalArrangement =
+                                        Arrangement.spacedBy(4.dp)
                                 ) {
+
                                     Icon(
                                         imageVector = tab.icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) JarvisCyan else JarvisTextMuted,
-                                        modifier = Modifier.size(14.dp)
+                                        tint =
+                                            if (isSelected)
+                                                JarvisCyan
+                                            else
+                                                JarvisTextMuted,
+                                        modifier =
+                                            Modifier.size(14.dp)
                                     )
+
                                     Text(
                                         text = tab.title,
-                                        color = if (isSelected) JarvisCyan else JarvisTextSecondary,
+                                        color =
+                                            if (isSelected)
+                                                JarvisCyan
+                                            else
+                                                JarvisTextSecondary,
                                         fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        fontFamily = FontFamily.Monospace
+                                        fontWeight =
+                                            if (isSelected)
+                                                FontWeight.Bold
+                                            else
+                                                FontWeight.Normal,
+                                        fontFamily =
+                                            FontFamily.Monospace
                                     )
                                 }
                             }
@@ -195,102 +286,292 @@ fun MainScreen(viewModel: JarvisViewModel) {
                 }
             }
         },
+
         containerColor = JarvisBackground
+
     ) { innerPadding ->
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+
             when (currentTab) {
-                JarvisNavTab.DASHBOARD -> DashboardScreen(
-                    telemetry = telemetry,
-                    voiceState = voiceState,
-                    voiceMode = voiceMode,
-                    activeTasks = activeAgentPlan,
-                    recentHistory = history,
-                    isMinimalistMode = isMinimalistMode,
-                    onToggleMinimalistMode = { viewModel.toggleMinimalistMode(it) },
-                    onStartVoice = { viewModel.voiceController.startListening() },
-                    onNavigateToChat = { currentTab = JarvisNavTab.CHAT },
-                    onNavigateToVision = { currentTab = JarvisNavTab.VISION },
-                    onQuickAction = { app -> viewModel.deviceController.openApplication(app) }
-                )
 
-                JarvisNavTab.CHAT -> ChatScreen(
-                    messages = chatMessages,
-                    isThinking = isThinking,
-                    voiceState = voiceState,
-                    voiceMode = voiceMode,
-                    onSendMessage = { viewModel.processUserInput(it) },
-                    onStartVoice = {
-    val currentState = viewModel.voiceController.voiceState.value
+                JarvisNavTab.DASHBOARD -> {
 
-    when (currentState) {
-        VoiceState.IDLE,
-        VoiceState.ERROR -> {
-            viewModel.voiceController.startListening()
-        }
+                    DashboardScreen(
 
-        VoiceState.LISTENING -> {
-            viewModel.voiceController.stopListening()
-        }
+                        telemetry = telemetry,
 
-        VoiceState.THINKING -> {
-            viewModel.voiceController.stopListening()
-        }
+                        voiceState = voiceState,
 
-        VoiceState.SPEAKING -> {
-            viewModel.voiceController.stopSpeaking()
-        }
-    }
-},
-                    onStopVoice = { viewModel.voiceController.stopListening() },
-                    onToggleVoiceMode = { viewModel.voiceController.toggleVoiceMode() },
-                    onSpeakText = { viewModel.voiceController.speak(it) },
-                    onConfirmPlan = { viewModel.confirmPendingAction() },
-                    onCancelPlan = { viewModel.cancelPendingAction() }
-                )
+                        voiceMode = voiceMode,
+
+                        activeTasks = activeAgentPlan,
+
+                        recentHistory = history,
+
+                        isMinimalistMode =
+                            isMinimalistMode,
+
+                        onToggleMinimalistMode = {
+                            viewModel.toggleMinimalistMode(it)
+                        },
+
+                        /*
+                         * AQUÍ ESTÁ LA CORRECCIÓN
+                         */
+                        onStartVoice = handleVoiceButton,
+
+                        onNavigateToChat = {
+                            currentTab =
+                                JarvisNavTab.CHAT
+                        },
+
+                        onNavigateToVision = {
+                            currentTab =
+                                JarvisNavTab.VISION
+                        },
+
+                        onQuickAction = { app ->
+                            viewModel.deviceController
+                                .openApplication(app)
+                        }
+                    )
+                }
+
+                JarvisNavTab.CHAT -> {
+
+                    ChatScreen(
+
+                        messages = chatMessages,
+
+                        isThinking = isThinking,
+
+                        voiceState = voiceState,
+
+                        voiceMode = voiceMode,
+
+                        onSendMessage = {
+                            viewModel.processUserInput(it)
+                        },
+
+                        /*
+                         * MISMA CORRECCIÓN EN CHAT
+                         */
+                        onStartVoice = handleVoiceButton,
+
+                        onStopVoice = {
+                            viewModel.voiceController
+                                .stopListening()
+                        },
+
+                        onToggleVoiceMode = {
+                            viewModel.voiceController
+                                .toggleVoiceMode()
+                        },
+
+                        onSpeakText = {
+                            viewModel.voiceController
+                                .speak(it)
+                        },
+
+                        onConfirmPlan = {
+                            viewModel.confirmPendingAction()
+                        },
+
+                        onCancelPlan = {
+                            viewModel.cancelPendingAction()
+                        }
+                    )
+                }
 
                 JarvisNavTab.SKILLS -> SkillsScreen(
+
                     skills = skills,
+
                     onToggleSkill = { skill ->
+
                         coroutineScope.launch {
-                            viewModel.repository.updateSkill(skill.copy(isEnabled = !skill.isEnabled))
-                        }
-                    },
-                    onCreateSkill = { name, category, trigger, actions ->
-                        coroutineScope.launch {
-                            val newSkill = SkillEntity(
-                                id = "skill_${System.currentTimeMillis()}",
-                                name = name,
-                                category = category,
-                                iconName = "bolt",
-                                description = "Disparador: $trigger. Acciones: $actions",
-                                isEnabled = true,
-                                availableActions = actions,
-                                isCustom = true
+
+                            viewModel.repository.updateSkill(
+                                skill.copy(
+                                    isEnabled =
+                                        !skill.isEnabled
+                                )
                             )
-                            viewModel.repository.saveSkill(newSkill)
-                            viewModel.logAction("Nueva Habilidad Creada", name, "System", "COMPLETED")
                         }
                     },
-                    onDeleteSkill = { skillId ->
+
+                    onCreateSkill = {
+                            name,
+                            category,
+                            trigger,
+                            actions ->
+
                         coroutineScope.launch {
-                            viewModel.repository.deleteSkill(skillId)
+
+                            val newAuto =
+                                SkillEntity(
+                                    id = "skill_${System.currentTimeMillis()}",
+                                    name = name,
+                                    category = category,
+                                    iconName = "bolt",
+                                    description =
+                                        "Disparador: $trigger. Acciones: $actions",
+                                    isEnabled = true,
+                                    availableActions = actions,
+                                    isCustom = true
+                                )
+
+                            viewModel.repository
+                                .saveSkill(newAuto)
+
+                            viewModel.logAction(
+                                "Nueva Habilidad Creada",
+                                name,
+                                "System",
+                                "COMPLETED"
+                            )
+                        }
+                    },
+
+                    onDeleteSkill = { skillId ->
+
+                        coroutineScope.launch {
+
+                            viewModel.repository
+                                .deleteSkill(skillId)
+                        }
+                    }
+                )
+
+                JarvisNavTab.AUTOMATIONS -> AutomationsScreen(
+
+                    automations = automations,
+
+                    onToggleAutomation = { auto ->
+
+                        coroutineScope.launch {
+
+                            viewModel.repository
+                                .updateAutomation(
+                                    auto.copy(
+                                        isEnabled =
+                                            !auto.isEnabled
+                                    )
+                                )
+                        }
+                    },
+
+                    onCreateAutomation = {
+                            name,
+                            trigType,
+                            trigCond,
+                            secCond,
+                            acts ->
+
+                        coroutineScope.launch {
+
+                            val newAuto =
+                                AutomationEntity(
+                                    name = name,
+                                    triggerType = trigType,
+                                    triggerCondition = trigCond,
+                                    secondCondition = secCond,
+                                    actionsList = acts,
+                                    isEnabled = true
+                                )
+
+                            viewModel.repository
+                                .saveAutomation(newAuto)
+
+                            viewModel.logAction(
+                                "Automatización Creada",
+                                name,
+                                "Automation",
+                                "COMPLETED"
+                            )
+                        }
+                    },
+
+                    onExecuteAutomation = { auto ->
+                        viewModel.executeAutomation(auto)
+                    },
+
+                    onDeleteAutomation = { id ->
+
+                        coroutineScope.launch {
+
+                            viewModel.repository
+                                .deleteAutomation(id)
+                        }
+                    }
+                )
+
+                JarvisNavTab.MEMORY -> MemoryScreen(
+
+                    memories = memories,
+
+                    onSaveMemory = {
+                            title,
+                            content,
+                            cat,
+                            tags ->
+
+                        coroutineScope.launch {
+
+                            viewModel.repository.saveMemory(
+                                com.example.data.local.entity.MemoryEntity(
+                                    title = title,
+                                    content = content,
+                                    category = cat,
+                                    tags = tags
+                                )
+                            )
+
+                             viewModel.logAction(
+                                "Nueva Habilidad Creada",
+                                name,
+                                "System",
+                                "COMPLETED"
+                            )
+                        }
+                    },
+
+                    onDeleteSkill = { skillId ->
+
+                        coroutineScope.launch {
+                            viewModel.repository
+                                .deleteSkill(skillId)
                         }
                     }
                 )
 
                 JarvisNavTab.AUTOMATIONS -> AutomationsScreen(
                     automations = automations,
+
                     onToggleAutomation = { auto ->
                         coroutineScope.launch {
-                            viewModel.repository.updateAutomation(auto.copy(isEnabled = !auto.isEnabled))
+                            viewModel.repository.updateAutomation(
+                                auto.copy(
+                                    isEnabled = !auto.isEnabled
+                                )
+                            )
                         }
                     },
-                    onCreateAutomation = { name, trigType, trigCond, secCond, acts ->
+
+                    onCreateAutomation = {
+                            name,
+                            trigType,
+                            trigCond,
+                            secCond,
+                            acts ->
+
                         coroutineScope.launch {
+
                             val newAuto = AutomationEntity(
                                 name = name,
                                 triggerType = trigType,
@@ -299,13 +580,22 @@ fun MainScreen(viewModel: JarvisViewModel) {
                                 actionsList = acts,
                                 isEnabled = true
                             )
+
                             viewModel.repository.saveAutomation(newAuto)
-                            viewModel.logAction("Automatización Creada", name, "Automation", "COMPLETED")
+
+                            viewModel.logAction(
+                                "Automatización Creada",
+                                name,
+                                "Automation",
+                                "COMPLETED"
+                            )
                         }
                     },
+
                     onExecuteAutomation = { auto ->
                         viewModel.executeAutomation(auto)
                     },
+
                     onDeleteAutomation = { id ->
                         coroutineScope.launch {
                             viewModel.repository.deleteAutomation(id)
@@ -315,8 +605,15 @@ fun MainScreen(viewModel: JarvisViewModel) {
 
                 JarvisNavTab.MEMORY -> MemoryScreen(
                     memories = memories,
-                    onSaveMemory = { title, content, cat, tags ->
+
+                    onSaveMemory = {
+                            title,
+                            content,
+                            cat,
+                            tags ->
+
                         coroutineScope.launch {
+
                             viewModel.repository.saveMemory(
                                 com.example.data.local.entity.MemoryEntity(
                                     title = title,
@@ -325,82 +622,160 @@ fun MainScreen(viewModel: JarvisViewModel) {
                                     tags = tags
                                 )
                             )
-                            viewModel.logAction("Recuerdo Almacenado", title, "Memory", "COMPLETED")
+
+                            viewModel.logAction(
+                                "Recuerdo Almacenado",
+                                title,
+                                "Memory",
+                                "COMPLETED"
+                            )
                         }
                     },
+
                     onDeleteMemory = { id ->
                         coroutineScope.launch {
                             viewModel.repository.deleteMemory(id)
                         }
                     },
+
                     onClearAllMemories = {
                         coroutineScope.launch {
+
                             viewModel.repository.clearAllMemories()
-                            viewModel.logAction("Memoria Purgada", "Todos los recuerdos eliminados", "Memory", "COMPLETED")
+
+                            viewModel.logAction(
+                                "Memoria Purgada",
+                                "Todos los recuerdos eliminados",
+                                "Memory",
+                                "COMPLETED"
+                            )
                         }
                     }
                 )
 
                 JarvisNavTab.CONNECTIONS -> ConnectionsScreen(
                     connections = connections,
+
                     onToggleConnection = { conn ->
                         coroutineScope.launch {
-                            viewModel.repository.updateConnection(conn.copy(isConnected = !conn.isConnected))
+                            viewModel.repository.updateConnection(
+                                conn.copy(
+                                    isConnected = !conn.isConnected
+                                )
+                            )
                         }
                     }
                 )
 
                 JarvisNavTab.HISTORY -> HistoryScreen(
                     historyList = history,
+
                     onClearAllHistory = {
                         coroutineScope.launch {
                             viewModel.repository.clearAllHistory()
                         }
                     },
+
                     onUndoAction = { action ->
-                        viewModel.logAction("Acción Deshecha", action.title, "System", "COMPLETED")
+                        viewModel.logAction(
+                            "Acción Deshecha",
+                            action.title,
+                            "System",
+                            "COMPLETED"
+                        )
                     }
                 )
 
                 JarvisNavTab.SECURITY -> PermissionsScreen(
-                    permissions = viewModel.permissionManager.getAllPermissions(),
-                    onOpenSettings = { viewModel.permissionManager.openAppSettings() },
-                    onOpenAccessibilitySettings = { viewModel.permissionManager.openAccessibilitySettings() }
+                    permissions =
+                        viewModel.permissionManager
+                            .getAllPermissions(),
+
+                    onOpenSettings = {
+                        viewModel.permissionManager
+                            .openAppSettings()
+                    },
+
+                    onOpenAccessibilitySettings = {
+                        viewModel.permissionManager
+                            .openAccessibilitySettings()
+                    }
                 )
 
                 JarvisNavTab.VISION -> VisionScreen(
                     isAnalyzing = isVisionAnalyzing,
                     analysisResult = visionResult,
-                    onAnalyzeImage = { bmp, prompt ->
-                        viewModel.analyzeImage(bmp, prompt)
+
+                    onAnalyzeImage = {
+                            bmp,
+                            prompt ->
+
+                        viewModel.analyzeImage(
+                            bmp,
+                            prompt
+                        )
                     }
                 )
 
                 JarvisNavTab.SETTINGS -> SettingsScreen(
                     selectedModel = selectedModel,
-                    onSelectModel = { viewModel.setSelectedModel(it) },
+
+                    onSelectModel = {
+                        viewModel.setSelectedModel(it)
+                    },
+
                     isAdminActive = isAdminActive,
                     adminTimeFormatted = adminTimeFormatted,
-                    onEnableAdmin = { mins -> viewModel.adminModeManager.enableAdminMode(mins) },
-                    onDisableAdmin = { viewModel.adminModeManager.disableAdminMode() },
+
+                    onEnableAdmin = { mins ->
+                        viewModel.adminModeManager
+                            .enableAdminMode(mins)
+                    },
+
+                    onDisableAdmin = {
+                        viewModel.adminModeManager
+                            .disableAdminMode()
+                    },
+
                     isHotwordEnabled = isHotwordEnabled,
-                    onToggleHotword = { viewModel.voiceController.toggleHotword() },
+
+                    onToggleHotword = {
+                        viewModel.voiceController
+                            .toggleHotword()
+                    },
+
                     pitch = voicePitch,
-                    onPitchChange = { viewModel.voiceController.setPitch(it) },
+
+                    onPitchChange = {
+                        viewModel.voiceController
+                            .setPitch(it)
+                    },
+
                     volume = voiceVolume,
-                    onVolumeChange = { viewModel.voiceController.setVolume(it) }
+
+                    onVolumeChange = {
+                        viewModel.voiceController
+                            .setVolume(it)
+                    }
                 )
             }
 
-            // Pending Action Confirmation Modal
             pendingConfirmation?.let { pending ->
+
                 ActionConfirmationDialog(
                     title = pending.title,
                     details = pending.details,
-                    onConfirm = { viewModel.confirmPendingAction() },
-                    onDismiss = { viewModel.cancelPendingAction() }
+
+                    onConfirm = {
+                        viewModel.confirmPendingAction()
+                    },
+
+                    onDismiss = {
+                        viewModel.cancelPendingAction()
+                    }
                 )
             }
         }
     }
 }
+     
