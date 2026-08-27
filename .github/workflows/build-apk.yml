@@ -28,10 +28,7 @@ jobs:
       - name: Dar permisos al Gradle Wrapper
         run: chmod +x ./gradlew
 
-      - name: Compilar APK
-        run: ./gradlew assembleDebug
-
-             - name: Crear debug.keystore
+      - name: Crear debug.keystore
         run: |
           keytool -genkeypair \
             -v \
@@ -43,6 +40,9 @@ jobs:
             -keysize 2048 \
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Compilar APK
+        run: ./gradlew assembleDebug
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
